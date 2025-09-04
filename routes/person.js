@@ -12,18 +12,37 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET single person by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const person = await Person.findById(req.params.id);
+    if (!person) return res.status(404).json({ message: 'Person not found' });
+    res.json(person);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 // POST
 router.post('/', async (req, res) => {
     try {
-        if (!Array.isArray(req.body) || req.body.length === 0) {
-            return res.status(400).json({ message: 'Request body must be a non-empty array of people' });
+        const { name, age, gender, mobile } = req.body;
+
+        if (!name || !age || !gender || !mobile) {
+            return res.status(400).json({ message: 'All fields are required' });
         }
-        const people = await Person.insertMany(req.body);
-        res.status(201).json(people);
+
+        const newPerson = new Person({ name, age, gender, mobile });
+        const savedPerson = await newPerson.save();
+
+        res.status(201).json(savedPerson);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
+
+
 
 // PUT
 router.put('/:id', async (req, res) => {
@@ -41,6 +60,22 @@ router.put('/:id', async (req, res) => {
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
+});
+// DELETE multiple people
+router.delete('/', async (req, res) => {
+  try {
+    const { ids } = req.body; // expect { ids: ['id1', 'id2', ...] }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'No IDs provided' });
+    }
+
+    const result = await Person.deleteMany({ _id: { $in: ids } });
+
+    res.json({ message: `${result.deletedCount} people deleted` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // DELETE
